@@ -7,7 +7,7 @@ import (
 )
 
 var _pool *pool
-var MAX_WORKERS = 5
+var MAX_WORKERS = 3
 
 func init() {
 	maxWorkers := os.Getenv("GO_DO_MAX_WORKERS")
@@ -27,7 +27,6 @@ type pool struct {
 	maxWorkers int
 	taskRunner func(t Task)
 	taskChan   chan Task
-	errorChan  chan error
 	errors     []error
 	wg         *sync.WaitGroup
 }
@@ -44,7 +43,6 @@ func NewPool(max int) *pool {
 	p := &pool{
 		maxWorkers: max,
 		taskChan:   make(chan Task),
-		errorChan:  make(chan error),
 		wg:         &sync.WaitGroup{},
 	}
 
@@ -52,14 +50,13 @@ func NewPool(max int) *pool {
 		err := task()
 
 		if err != nil {
-			p.errorChan <- err
+			p.errors = append(p.errors, err)
 		}
 
 		p.wg.Done()
 	}
 
 	p.startTaskListeners()
-	p.startErrorListeners()
 
 	_pool = p
 
@@ -92,15 +89,4 @@ func (p *pool) startTaskListeners() {
 			}
 		}()
 	}
-}
-
-func (p *pool) startErrorListeners() {
-	go func() {
-		for {
-			select {
-			case err := <-p.errorChan:
-				p.errors = append(p.errors, err)
-			}
-		}
-	}()
 }
