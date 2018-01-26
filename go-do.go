@@ -1,25 +1,8 @@
 package godo
 
 import (
-	"os"
-	"strconv"
 	"sync"
 )
-
-var _pool *pool
-var MAX_WORKERS = 3
-
-func init() {
-	maxWorkers := os.Getenv("GO_DO_MAX_WORKERS")
-
-	if maxWorkers != "" {
-		maxWorkersInt, err := strconv.Atoi(maxWorkers)
-
-		if err == nil {
-			MAX_WORKERS = maxWorkersInt
-		}
-	}
-}
 
 type Task func() error
 
@@ -29,14 +12,6 @@ type pool struct {
 	taskChan   chan Task
 	errors     []error
 	wg         *sync.WaitGroup
-}
-
-func GetPool() *pool {
-	if _pool == nil {
-		_pool = NewPool(MAX_WORKERS)
-	}
-
-	return _pool
 }
 
 func NewPool(max int) *pool {
@@ -57,8 +32,6 @@ func NewPool(max int) *pool {
 	}
 
 	p.startTaskListeners()
-
-	_pool = p
 
 	return p
 }
